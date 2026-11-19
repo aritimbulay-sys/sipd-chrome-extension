@@ -731,6 +731,7 @@
     if (!window.confirm('Hapus semua data yang sudah tersimpan?')) return;
     setBusy(true);
     DB.clear().then(function () {
+      chrome.storage.local.remove('selisihState');
       toast('Semua data dihapus.', 'ok');
       return load(true);
     }).catch(function (e) {

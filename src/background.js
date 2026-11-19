@@ -151,10 +151,33 @@ function handleNetwork(message) {
   return chain.then(function () {
     if (saved) {
       updateBadge();
+      updateSelisihState();
       DB.trim().catch(function () { /* abaikan */ });
     }
     return { ok: true, saved: saved };
   });
+}
+
+/* Mencatat kapan terakhir nilai selisih tiap OPD berubah (untuk badge Stagnan). */
+function updateSelisihState() {
+  return DB.all().then(function (all) {
+    var report = E.build3ColumnReport(all || []);
+    return new Promise(function (resolve) {
+      chrome.storage.local.get({ selisihState: {} }, function (items) {
+        var prev = items.selisihState || {};
+        var next = {};
+        var now = Date.now();
+        report.rows.slice(1, report.rows.length - 1).forEach(function (r) {
+          var nad = r[1];
+          var sel = r[4];
+          if (typeof sel !== 'number') return;
+          var old = prev[nad];
+          next[nad] = (old && old.selisih === sel) ? old : { selisih: sel, changedAt: now };
+        });
+        chrome.storage.local.set({ selisihState: next }, resolve);
+      });
+    });
+  }).catch(function () { /* abaikan */ });
 }
 
 function handleDOM(message) {

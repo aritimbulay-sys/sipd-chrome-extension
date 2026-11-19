@@ -25,8 +25,30 @@
     return captures.map(function (c) { return c.id + ':' + c.ts + ':' + (c.count || 0); }).join('|');
   }
 
-  function render(captures) {
-    var report = E.build3ColumnReport(captures);
+  var STAGNAN_MS = 60 * 60 * 1000;
+
+  /* OPD dengan Keterangan Kurang/Lebih Input yang selisihnya tidak berubah ≥ 1 jam. */
+  function stagnanMap(report, state) {
+    var out = {};
+    var now = Date.now();
+    report.rows.slice(1, report.rows.length - 1).forEach(function (r) {
+      var ket = r[6];
+      if (ket !== 'Kurang Input' && ket !== 'Lebih Input') return;
+      var st = state[r[1]];
+      if (st && typeof st.changedAt === 'number' && now - st.changedAt >= STAGNAN_MS) out[r[1]] = true;
+    });
+    return out;
+  }
+
+  function getState() {
+    return new Promise(function (resolve) {
+      chrome.storage.local.get({ selisihState: {} }, function (items) {
+        resolve((items && items.selisihState) || {});
+      });
+    });
+  }
+
+  function render(captures, report, stag) {
     var now = new Date();
     var stamp = now.toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     var title = document.getElementById('title');
@@ -67,6 +89,9 @@
           content = fmt(v);
         } else {
           content = U.escapeXml(v == null ? '' : v);
+          if (c === 1 && stag && stag[r[1]]) {
+            content += ' <span class="stagnan">Stagnan</span>';
+          }
         }
         if (c === report.columns.length - 1) {
           if (v === 'Sudah Sesuai') cls = ' class="ok"';
@@ -90,15 +115,19 @@
   }
 
   function tick() {
-    return DB.all().then(function (all) {
-      var captures = (all || []).slice().sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
-      var sig = signature(captures);
-      if (sig === lastSig) {
+    return Promise.all([DB.all(), getState()]).then(function (vals) {
+      var all = vals[0] || [];
+      var state = vals[1];
+      var captures = all.slice().sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+      var report = E.build3ColumnReport(captures);
+      var stag = stagnanMap(report, state);
+      var key = signature(captures) + '#' + Object.keys(stag).sort().join('|');
+      if (key === lastSig) {
         live.textContent = 'Live · dicek ' + new Date().toLocaleTimeString('id-ID');
         return;
       }
-      lastSig = sig;
-      render(captures);
+      lastSig = key;
+      render(captures, report, stag);
       live.textContent = 'Live · diperbarui ' + new Date().toLocaleTimeString('id-ID');
     }).catch(function (e) {
       wrap.innerHTML = '<div class="empty">Gagal memuat data: ' +
