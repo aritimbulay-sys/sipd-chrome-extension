@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "SIPD Anggaran Scraper",
+  "version": "1.0.0",
+  "description": "Menarik data Nama Perangkat Daerah, Batasan Pagu SKPD, dan Rincian Belanja dari SIPD RI (sipd-ri.kemendagri.go.id) lalu mengekspornya ke Excel/CSV.",
+  "minimum_chrome_version": "111",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://sipd-ri.kemendagri.go.id/*",
+    "https://*.kemendagri.go.id/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_title": "SIPD Anggaran Scraper",
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://sipd-ri.kemendagri.go.id/*",
+        "https://*.kemendagri.go.id/*"
+      ],
+      "js": ["src/inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://sipd-ri.kemendagri.go.id/*",
+        "https://*.kemendagri.go.id/*"
+      ],
+      "js": [
+        "src/lib/util.js",
+        "src/lib/extract.js",
+        "src/bridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/lib/*.js", "src/*.js"],
+      "matches": ["https://sipd-ri.kemendagri.go.id/*", "https://*.kemendagri.go.id/*"]
+    }
+  ]
+}
