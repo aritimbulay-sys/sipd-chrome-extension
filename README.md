@@ -1,117 +1,106 @@
-# SIPD Anggaran Scraper (Chrome Extension)
+# SIPD Anggaran Scraper
 
-Ekstensi Manifest V3 untuk menarik data dari SIPD RI (`sipd-ri.kemendagri.go.id`) dan mengekspornya ke Excel/CSV:
+Ekstensi Chrome (Manifest V3) untuk memantau progres input **Rincian Belanja** per Perangkat Daerah pada aplikasi SIPD RI (`sipd-ri.kemendagri.go.id`), lalu menampilkannya dalam laporan live yang bisa dicetak ke PDF atau diekspor ke Excel.
 
-- **Nama Perangkat Daerah**
-- **Batasan Pagu SKPD**
-- **Rincian Belanja**
+Data: **Nama Perangkat Daerah**, **Batasan Pagu SKPD**, **Rincian Belanja**, dengan kolom turunan **Selisih**, **Progres**, dan **Keterangan**.
 
-Data diambil dengan dua cara sekaligus:
+## Fitur
 
-1. **Tangkapan API** — skrip disuntikkan ke konteks halaman dan membungkus `fetch` + `XMLHttpRequest`, lalu menyimpan setiap respons JSON yang berisi array objek.
-2. **Pindai tabel HTML** — membaca tabel yang tampil di layar, termasuk `rowspan`/`colspan` dan header bertingkat.
+- **Tombol aktif hanya di halaman cascading.** Di halaman lain ikon extension redup dan tidak bisa diklik. Chrome tidak mengizinkan ikon disembunyikan sepenuhnya.
+- **Otomatis 100 data per halaman.** Saat halaman cascading dibuka, ekstensi memilih *Items per page = 100* sehingga semua OPD tampil dalam satu halaman.
+- **Tangkapan data API.** Respons JSON dari SIPD (terutama `list_skpd`) ditangkap dan disimpan di IndexedDB browser. Data tidak dikirim ke server mana pun.
+- **Laporan live.** Halaman laporan memeriksa data setiap 5 detik dan memperbarui tabel, ringkasan, dan judul saat ada perubahan.
+- **Muat Ulang Data SIPD.** Memuat ulang tab SIPD agar data terbaru terambil.
+- **Ekspor PDF dan Excel.** Warna baris: hijau untuk *Sudah Sesuai*, merah untuk *Lebih Input*.
 
-Semua data disimpan lokal di IndexedDB browser, tidak dikirim ke mana pun.
+## Aturan perhitungan
+
+| Kolom | Rumus / aturan |
+|---|---|
+| Selisih | Rincian Belanja − Batasan Pagu SKPD |
+| Progres | Rincian Belanja ÷ Batasan Pagu SKPD, dipotong (bukan dibulatkan) ke 2 desimal persen |
+| Keterangan | Selisih = 0 → **Sudah Sesuai**; Selisih minus → **Kurang Input**; Selisih > 0 → **Lebih Input** |
+
+Laporan memakai **satu tarikan terbaru** dari daftar OPD SIPD (`list_skpd`). Tahun di judul diambil dari kolom `tahun` pada data.
 
 ## Instalasi
 
-1. Buka `chrome://extensions`
-2. Aktifkan **Developer mode** (kanan atas)
-3. Klik **Load unpacked**, pilih folder `sipd-scraper-extension`
-4. **Setiap kali kode diubah:** klik ikon ⟳ (Reload) pada kartu ekstensi, lalu tutup–buka ulang popup
+1. Clone atau unduh repo ini.
+2. Buka `chrome://extensions`.
+3. Aktifkan **Developer mode** (kanan atas).
+4. Klik **Load unpacked**, lalu pilih folder `sipd-scraper-extension` (folder yang berisi `manifest.json`).
+5. Setiap kali kode berubah, klik ⟳ **Reload** pada kartu ekstensi, lalu tutup dan buka lagi tab yang terkait.
 
 ## Penggunaan
 
-1. Buka halaman SIPD, mis. `https://sipd-ri.kemendagri.go.id/penganggaran/anggaran/cascading`, lalu login.
-2. Tampilkan daftar yang diinginkan (atur **pageSize** ke maksimum).
-3. Klik ikon ekstensi:
-   - **Pindai Tabel Halaman** — menyimpan tabel yang sedang tampil.
-   - **Auto Kumpulkan Halaman…** — menekan tombol “halaman berikutnya” berulang kali dan menyimpan tiap halaman.
-   - **Unduh PDF** — membuka laporan 3 kolom (Perangkat Daerah, Batasan Pagu SKPD, Rincian Belanja) dan mencetak/menyimpan sebagai PDF.
-   - **Unduh Laporan (Excel)** — mengunduh Excel ringkas 3 kolom + baris TOTAL.
-   - **Pemetaan Kolom…** — menentukan kolom mana yang menjadi Perangkat Daerah / Pagu / Rincian Belanja.
-   - **Muat Ulang** — memuat ulang daftar sumber dari penyimpanan.
-   - **Ekspor Lengkap (.xlsx)** — mengekspor semua sheet (Laporan, Perangkat Daerah, Rincian Belanja, Ringkasan, Data Mentah).
-   - **Ekspor CSV** — mengekspor sheet yang sedang aktif.
+1. Buka `https://sipd-ri.kemendagri.go.id/penganggaran/anggaran/cascading` dan login.
+2. Tunggu tabel tampil. Items per page akan diatur ke 100 secara otomatis.
+3. Klik ikon extension, lalu pilih **Buka Laporan Live / PDF**.
+4. Di laporan:
+   - **Muat Ulang Data SIPD**: memuat ulang tab SIPD dan menunggu data baru.
+   - **Cetak / Simpan PDF**: cetak atau simpan sebagai PDF (pilih *Save as PDF*).
+5. Dari popup, **Unduh Laporan (Excel)** menghasilkan Excel ringkas, dan **Ekspor Lengkap (.xlsx)** menghasilkan semua sheet.
 
-## Sheet hasil ekspor
+### Tombol lain di popup
 
-| Sheet | Isi |
-|---|---|
-| Laporan | Gabungan: Nama PD, Kode, Batasan Pagu SKPD, Rincian Belanja, Kode Rekening, Program, Kegiatan, Sub Kegiatan, Sumber Dana, Tahun, Sumber Data |
-| Perangkat Daerah | Daftar unik perangkat daerah + total pagu (hasil penjumlahan otomatis) |
-| Rincian Belanja | Baris yang memiliki rincian/rekening beserta pagunya |
-| Ringkasan | Daftar sumber data yang tertangkap |
-| Data Mentah | Seluruh kolom mentah dari sumber API & tabel HTML |
-
-## Kolom “Rincian Belanja” kosong?
-
-Penyebab paling umum: **sumber yang tertangkap belum memuat baris rincian**.
-
-Halaman *cascading* biasanya menampilkan level **Perangkat Daerah** (nama PD + batas pagu) saja.
-Baris rincian (belanja/rekening/sub kegiatan) baru muncul setelah:
-
-- baris PD **dikembangkan** (expand) sehingga tampil anak barisnya, atau
-- filter/level tampilan diubah ke **Sub Kegiatan / Belanja / Rekening**.
-
-Langkah perbaikan:
-
-1. Buka **Pemetaan Kolom…** → klik **Kembalikan ke Otomatis** (menghapus pemetaan lama yang mungkin salah).
-2. Klik **Muat Ulang**.
-3. Cek tab **Laporan** — kolom Rincian Belanja seharusnya terisi (nilai `rinci_giat`).
-
-Kolom yang tersedia pada halaman ini (otomatis dikenali sekarang):
-
-| Kolom SIPD | Dipetakan ke |
-|---|---|
-| Perangkat Daerah (gabungan kode + nama) | Nama Perangkat Daerah |
-| Batasan Pagu SKPD | Batasan Pagu SKPD |
-| Rincian Belanja | Rincian Belanja |
-| Pagu Validasi / Inputan Pagu | (diabaikan, agar tidak tertukar) |
-| Rincian Belanja Terbuka | (diabaikan, agar tidak tertukar) |
-
-Catatan: bila kolom rincian masih kosong, pastikan sumber data yang dipakai adalah yang terbaru (klik **Pindai Tabel Halaman** setelah halaman tampil penuh), lalu ulangi langkah 1–2.
-
-Deteksi otomatis juga sudah diperkuat: bila kolom `uraian`/`nama`/`keterangan` tidak ada, sistem turun memakai Sub Kegiatan → Kegiatan → Program sebagai isi Rincian Belanja.
+- **Pindai Tabel Halaman**: menyimpan tabel yang sedang tampil.
+- **Auto Kumpulkan Halaman…**: menekan tombol "halaman berikutnya" berulang kali dan menyimpan tiap halaman.
+- **Atur 100 per Halaman**: mengatur Items per page ke 100 secara manual.
+- **Pemetaan Kolom…**: memilih kolom sumber secara manual bila deteksi otomatis keliru.
+- **Ekspor CSV**: mengekspor sheet yang sedang aktif.
+- **Bersihkan**: menghapus semua data tersimpan.
 
 ## Diagnosa
 
-- **Tidak ada sumber API?** Perekaman otomatis hanya menangkap respons setelah ekstensi terpasang. Muat ulang halaman SIPD (F5) setelah memasang/menekan Reload ekstensi agar hook terpasang sejak awal.
-- **Tabel tidak terbaca?** Pastikan daftar sudah benar-benar tampil di layar (bukan masih memuat).
-- **Perekaman otomatis dimatikan?** Toggle di kanan atas header popup.
-- **Periksa pesan galat:** `chrome://extensions` → kartu ekstensi → **Errors**, dan **Inspect views: service worker**.
+- **Angka laporan belum berubah setelah SIPD diperbarui:** klik **Muat Ulang Data SIPD**, lalu tunggu beberapa detik. Jika perlu, klik **Bersihkan** di popup, lalu ulangi langkah di halaman SIPD.
+- **Items per page belum 100:** pastikan halaman cascading sudah tampil penuh. Jika tetap gagal, gunakan **Atur 100 per Halaman** di popup dan periksa pesan statusnya.
+- **Tombol ekstensi redup:** pastikan tab aktif berada di halaman cascading.
+- **Error di extension:** buka `chrome://extensions`, klik **Errors** pada kartu ekstensi, atau **Inspect views: service worker** untuk log background.
 
 ## Pengembangan
 
+Uji mandiri (parser, deteksi kolom, penulis XLSX, dan logika laporan):
+
 ```bash
-cd sipd-scraper-extension
-node tools/selftest.js      # uji parser, deteksi kolom, dan penulis XLSX
-python3 tools/make-icons.py # membuat ulang ikon PNG
+node tools/selftest.js
 ```
 
-Uji UI (perlu jsdom + fake-indexeddb, jalankan di folder terpisah):
+Ikon PNG bisa dibuat ulang dengan:
+
+```bash
+python3 tools/make-icons.py
+```
+
+Uji UI popup memakai jsdom dan fake-indexeddb. Pasang keduanya di folder terpisah, lalu jalankan:
 
 ```bash
 mkdir -p /tmp/sipd-smoke && cd /tmp/sipd-smoke && npm i jsdom fake-indexeddb
-NODE_PATH=/tmp/sipd-smoke/node_modules node "/path/ke/sipd-scraper-extension/tools/smoke-test.js"
+NODE_PATH=/tmp/sipd-smoke/node_modules node /path/ke/sipd-scraper-extension/tools/smoke-test.js
 ```
 
-Struktur:
+## Struktur
 
 ```
 sipd-scraper-extension/
 ├── manifest.json
-├── icons/                 ikon 16/32/48/128 px
+├── icons/                     ikon 16/32/48/128 px
 ├── src/
-│   ├── inject.js          hook fetch & XHR di konteks halaman (MAIN world)
-│   ├── bridge.js          jembatan pesan halaman ↔ ekstensi, scrape tabel, auto-halaman
-│   ├── background.js      service worker: simpan ke IndexedDB, badge
-│   ├── popup.html/.css/.js    antarmuka
-│   ├── app.html           mode besar (tab penuh)
+│   ├── inject.js              hook fetch & XHR di konteks halaman (MAIN world)
+│   ├── bridge.js              jembatan halaman ↔ extension, scrape tabel, auto-halaman, 100 per halaman
+│   ├── background.js          service worker: simpan tangkapan, badge, tombol aktif per halaman
+│   ├── popup.html/.css/.js    antarmuka popup
+│   ├── app.html               mode besar (tab penuh)
+│   ├── report.html/.js        laporan live (PDF & pemantauan)
 │   └── lib/
-│       ├── util.js        parser angka format Indonesia, hash
-│       ├── extract.js     penelusuran JSON, deteksi & pemetaan kolom, penyusun laporan
-│       ├── db.js          IndexedDB
-│       └── xlsx.js        penulis .xlsx (ZIP + OOXML, tanpa dependensi)
-└── tools/                 skrip bantu (selftest.js, smoke-test.js, make-icons.py)
+│       ├── util.js            parser angka format Indonesia, hash
+│       ├── extract.js         penelusuran JSON, deteksi kolom, penyusun laporan
+│       ├── db.js              IndexedDB
+│       └── xlsx.js            penulis .xlsx (ZIP + OOXML, tanpa dependensi)
+└── tools/                     selftest.js, smoke-test.js, make-icons.py
 ```
+
+## Catatan keamanan
+
+- Ekstensi hanya meminta akses ke domain `kemendagri.go.id`.
+- Data hanya disimpan lokal di browser. Tidak ada pengiriman data ke server.
+- Ekstensi tidak menyimpan kredensial login SIPD.
