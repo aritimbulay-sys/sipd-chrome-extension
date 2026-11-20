@@ -136,7 +136,7 @@ const oldCap = { kind: 'api', url: 'u', path: '$.d', label: 'lama', ts: 1000, co
 const newCap = Object.assign({}, oldCap, { label: 'baru', ts: 2000,
   rows: [{ nama_skpd: 'DINAS X', set_pagu_skpd: 1000, rinci_giat: 1000 }] });
 const rep = E.build3ColumnReport([oldCap, newCap]);
-check('laporan memakai nilai terbaru (rincian 1000)', rep.rows[1][5] === 1000, JSON.stringify(rep.rows[1]));
+check('laporan memakai nilai terbaru (rincian 1000)', rep.rows[1][3] === 1000, JSON.stringify(rep.rows[1]));
 check('tidak ada OPD ganda', rep.rows.length === 3, String(rep.rows.length));
 
 console.log('\nHasil: ' + (failures === 0 ? 'SEMUA LULUS' : failures + ' GAGAL'));

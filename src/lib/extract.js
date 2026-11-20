@@ -479,12 +479,11 @@
   }
 
   E.build3ColumnReport = function (captures) {
-    var HEADER = ['NO', 'Perangkat Daerah', 'Batasan Pagu SKPD', 'Pagu Validasi', 'Status Validasi', 'Rincian Belanja', 'Selisih', 'Progres', 'Keterangan'];
+    var HEADER = ['NO', 'Perangkat Daerah', 'Batasan Pagu SKPD', 'Rincian Belanja', 'Selisih', 'Progres', 'Keterangan', 'Status Validasi'];
     var rows = [HEADER];
     var fill = [''];
     var seen = {};
     var totalPagu = 0;
-    var totalPagufValidasi = 0;
     var totalRincian = 0;
     var no = 0;
 
@@ -533,17 +532,15 @@
           no,
           nad,
           paguNum !== null ? paguNum : (paguRaw === null || paguRaw === undefined ? '' : paguRaw),
-          pvNum !== null ? pvNum : '',
-          statusVal,
           rincianNum !== null ? rincianNum : (rincianRaw === null || rincianRaw === undefined ? '' : rincianRaw),
           selisih !== null ? selisih : '',
           progres !== null ? progres : '',
-          ket
+          ket,
+          statusVal
         ]);
         fill.push(fillKey(ket));
 
         if (paguNum !== null) totalPagu += paguNum;
-        if (pvNum !== null) totalPagufValidasi += pvNum;
         if (rincianNum !== null) totalRincian += rincianNum;
       });
     });
@@ -551,13 +548,13 @@
     var totalSelisih = totalRincian - totalPagu;
     var totalProgres = totalPagu !== 0 ? E.floorProgres(totalRincian / totalPagu) : '';
     var totalKet = E.keterangan(totalSelisih);
-    rows.push(['', 'TOTAL', totalPagu, totalPagufValidasi, '', totalRincian, totalSelisih, totalProgres, totalKet]);
+    rows.push(['', 'TOTAL', totalPagu, totalRincian, totalSelisih, totalProgres, totalKet, '']);
     fill.push(fillKey(totalKet));
     var tahun = '';
     Object.keys(yearCount).forEach(function (y) {
       if (!tahun || yearCount[y] > yearCount[tahun]) tahun = y;
     });
-    return { columns: HEADER.slice(), rows: rows, fill: fill, pctCols: [7], tahun: tahun };
+    return { columns: HEADER.slice(), rows: rows, fill: fill, pctCols: [5], tahun: tahun };
   };
 
   /**

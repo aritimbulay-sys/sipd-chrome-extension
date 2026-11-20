@@ -169,7 +169,7 @@ function updateSelisihState() {
         var now = Date.now();
         report.rows.slice(1, report.rows.length - 1).forEach(function (r) {
           var nad = r[1];
-          var sel = r[6];
+          var sel = r[4];
           if (typeof sel !== 'number') return;
           var old = prev[nad];
           next[nad] = (old && old.selisih === sel) ? old : { selisih: sel, changedAt: now };
