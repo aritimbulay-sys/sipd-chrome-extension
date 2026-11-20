@@ -4,7 +4,8 @@
 
   var U = window.SIPDUtil, E = window.SIPDExtract, DB = window.SIPDDB;
   var POLL_MS = 5000;
-  var NUM_COLS = [2, 3, 4];
+  var NUM_COLS = [2, 3, 5, 6];
+  var STATUS_COL = 4;
 
   var sub = document.getElementById('sub');
   var wrap = document.getElementById('wrap');
@@ -32,7 +33,7 @@
     var out = {};
     var now = Date.now();
     report.rows.slice(1, report.rows.length - 1).forEach(function (r) {
-      var ket = r[6];
+      var ket = r[8];
       if (ket !== 'Kurang Input' && ket !== 'Lebih Input') return;
       var st = state[r[1]];
       if (st && typeof st.changedAt === 'number' && now - st.changedAt >= STAGNAN_MS) out[r[1]] = true;
@@ -56,7 +57,7 @@
     document.title = title.textContent;
 
     var opdData = report.rows.slice(1, report.rows.length - 1);
-    var sesuai = opdData.filter(function (r) { return r[6] === 'Sudah Sesuai'; }).length;
+    var sesuai = opdData.filter(function (r) { return r[8] === 'Sudah Sesuai'; }).length;
     var belum = opdData.length - sesuai;
     document.getElementById('summary').innerHTML =
       'OPD sudah sesuai : ' + sesuai + '<br>OPD belum sesuai : ' + belum;
@@ -87,6 +88,10 @@
         } else if (NUM_COLS.indexOf(c) !== -1) {
           cls = ' class="num"';
           content = fmt(v);
+        } else if (c === STATUS_COL) {
+          if (v === 'Sudah Validasi') content = '<span class="badge-hijau">Sudah Validasi</span>';
+          else if (v === 'Belum Validasi') content = '<span class="badge-merah">Belum Validasi</span>';
+          else content = '';
         } else {
           content = U.escapeXml(v == null ? '' : v);
           if (c === 1 && stag && stag[r[1]]) {

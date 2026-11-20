@@ -465,12 +465,26 @@
    * 5. Laporan ringkas 3 kolom
    * ------------------------------------------------------------------ */
 
+  /* Kolom Pagu Validasi pada data SIPD: set_pagu_giat (API) atau "Pagu Validasi" (tabel). */
+  function findPaguValidasiColumn(columns) {
+    var exact = (columns || []).filter(function (c) { return /^set_pagu_giat$/i.test(String(c)); })[0];
+    if (exact) return exact;
+    return (columns || []).filter(function (c) { return /pagu.*validasi|validasi.*pagu/i.test(String(c)); })[0] || null;
+  }
+
+  function colValue(row, col) {
+    if (!col) return '';
+    var v = row[col];
+    return v === null || v === undefined ? '' : v;
+  }
+
   E.build3ColumnReport = function (captures) {
-    var HEADER = ['NO', 'Perangkat Daerah', 'Batasan Pagu SKPD', 'Rincian Belanja', 'Selisih', 'Progres', 'Keterangan'];
+    var HEADER = ['NO', 'Perangkat Daerah', 'Batasan Pagu SKPD', 'Pagu Validasi', 'Status Validasi', 'Rincian Belanja', 'Selisih', 'Progres', 'Keterangan'];
     var rows = [HEADER];
     var fill = [''];
     var seen = {};
     var totalPagu = 0;
+    var totalPagufValidasi = 0;
     var totalRincian = 0;
     var no = 0;
 
@@ -483,6 +497,7 @@
       var columns = cap.columns || [];
       var recs = cap.rows || [];
       var role = E.detectRoles(columns, recs);
+      var pvCol = findPaguValidasiColumn(columns);
 
       recs.forEach(function (r) {
         var nadRaw = pick(r, role.namaPD);
@@ -508,10 +523,18 @@
         var ket = E.keterangan(selisih);
 
         no++;
+        var pvRaw = colValue(r, pvCol);
+        var pvNum = U.parseIndoNumber(pvRaw);
+        var statusVal = '';
+        if (pvNum !== null && paguNum !== null) {
+          statusVal = Math.abs(pvNum - paguNum) < 0.005 ? 'Sudah Validasi' : 'Belum Validasi';
+        }
         rows.push([
           no,
           nad,
           paguNum !== null ? paguNum : (paguRaw === null || paguRaw === undefined ? '' : paguRaw),
+          pvNum !== null ? pvNum : '',
+          statusVal,
           rincianNum !== null ? rincianNum : (rincianRaw === null || rincianRaw === undefined ? '' : rincianRaw),
           selisih !== null ? selisih : '',
           progres !== null ? progres : '',
@@ -520,6 +543,7 @@
         fill.push(fillKey(ket));
 
         if (paguNum !== null) totalPagu += paguNum;
+        if (pvNum !== null) totalPagufValidasi += pvNum;
         if (rincianNum !== null) totalRincian += rincianNum;
       });
     });
@@ -527,13 +551,13 @@
     var totalSelisih = totalRincian - totalPagu;
     var totalProgres = totalPagu !== 0 ? E.floorProgres(totalRincian / totalPagu) : '';
     var totalKet = E.keterangan(totalSelisih);
-    rows.push(['', 'TOTAL', totalPagu, totalRincian, totalSelisih, totalProgres, totalKet]);
+    rows.push(['', 'TOTAL', totalPagu, totalPagufValidasi, '', totalRincian, totalSelisih, totalProgres, totalKet]);
     fill.push(fillKey(totalKet));
     var tahun = '';
     Object.keys(yearCount).forEach(function (y) {
       if (!tahun || yearCount[y] > yearCount[tahun]) tahun = y;
     });
-    return { columns: HEADER.slice(), rows: rows, fill: fill, pctCols: [5], tahun: tahun };
+    return { columns: HEADER.slice(), rows: rows, fill: fill, pctCols: [7], tahun: tahun };
   };
 
   /**
