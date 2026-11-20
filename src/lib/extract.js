@@ -525,7 +525,7 @@
         var pvRaw = colValue(r, pvCol);
         var pvNum = U.parseIndoNumber(pvRaw);
         var statusVal = '';
-        if (pvNum !== null && paguNum !== null) {
+        if (pvNum !== null && paguNum !== null && ket === 'Sudah Sesuai') {
           statusVal = Math.abs(pvNum - paguNum) < 0.005 ? 'Sudah Validasi' : 'Belum Validasi';
         }
         rows.push([
