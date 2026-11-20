@@ -25,9 +25,9 @@
     return captures.map(function (c) { return c.id + ':' + c.ts + ':' + (c.count || 0); }).join('|');
   }
 
-  var STAGNAN_MS = 60 * 60 * 1000;
+  var STAGNAN_MS = 3 * 60 * 60 * 1000;
 
-  /* OPD dengan Keterangan Kurang/Lebih Input yang selisihnya tidak berubah ≥ 1 jam. */
+  /* OPD dengan Keterangan Kurang/Lebih Input yang selisihnya tidak berubah ≥ 3 jam. */
   function stagnanMap(report, state) {
     var out = {};
     var now = Date.now();
