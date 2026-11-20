@@ -164,6 +164,28 @@
   on('btn-print', function () { window.print(); });
   on('btn-reload', reloadSipd);
 
+  var autoOn = document.getElementById('auto-on');
+  var autoMin = document.getElementById('auto-min');
+
+  function saveAutoReload() {
+    var minutes = Math.max(1, Math.min(1440, parseInt(autoMin.value, 10) || 5));
+    autoMin.value = minutes;
+    chrome.storage.local.set({ autoReload: { enabled: autoOn.checked, minutes: minutes } });
+    live.textContent = autoOn.checked
+      ? 'Muat ulang otomatis aktif: tiap ' + minutes + ' menit.'
+      : 'Muat ulang otomatis nonaktif.';
+  }
+
+  if (autoOn && autoMin) {
+    chrome.storage.local.get({ autoReload: { enabled: false, minutes: 5 } }, function (items) {
+      var cfg = items.autoReload || {};
+      autoOn.checked = !!cfg.enabled;
+      autoMin.value = cfg.minutes || 5;
+    });
+    autoOn.addEventListener('change', saveAutoReload);
+    autoMin.addEventListener('change', saveAutoReload);
+  }
+
   tick();
   setInterval(tick, POLL_MS);
 })();

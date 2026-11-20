@@ -55,6 +55,49 @@ chrome.tabs.onActivated.addListener(function (info) {
   });
 });
 
+/* ---------------- muat ulang otomatis halaman cascading ---------------- */
+var AUTO_RELOAD_ALARM = 'autoReloadSipd';
+var CASCADING_PATTERN = 'https://sipd-ri.kemendagri.go.id/penganggaran/anggaran/cascading*';
+
+function reloadCascadingTab(callback) {
+  chrome.tabs.query({ url: CASCADING_PATTERN }, function (tabs) {
+    if (!tabs || !tabs.length) {
+      if (callback) callback({ ok: false, error: 'Tab cascading SIPD tidak terbuka.' });
+      return;
+    }
+    var target = tabs.filter(function (t) { return t.active; })[0] || tabs[0];
+    chrome.tabs.reload(target.id, {}, function () {
+      if (callback) callback({ ok: true, tabId: target.id });
+    });
+  });
+}
+
+function applyAutoReload(cfg) {
+  chrome.alarms.clear(AUTO_RELOAD_ALARM, function () {
+    if (!cfg || !cfg.enabled) return;
+    var minutes = Math.max(1, Math.min(1440, parseInt(cfg.minutes, 10) || 5));
+    chrome.alarms.create(AUTO_RELOAD_ALARM, { periodInMinutes: minutes });
+  });
+}
+
+function loadAutoReload() {
+  chrome.storage.local.get({ autoReload: { enabled: false, minutes: 5 } }, function (items) {
+    applyAutoReload(items.autoReload);
+  });
+}
+
+chrome.alarms.onAlarm.addListener(function (alarm) {
+  if (alarm && alarm.name === AUTO_RELOAD_ALARM) reloadCascadingTab();
+});
+
+chrome.storage.onChanged.addListener(function (changes, area) {
+  if (area === 'local' && changes.autoReload) applyAutoReload(changes.autoReload.newValue);
+});
+
+chrome.runtime.onInstalled.addListener(loadAutoReload);
+chrome.runtime.onStartup.addListener(loadAutoReload);
+loadAutoReload();
+
 /* ---------------- badge ---------------- */
 function updateBadge(force) {
   DB.all().then(function (all) {

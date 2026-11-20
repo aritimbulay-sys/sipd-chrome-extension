@@ -12,6 +12,8 @@
     .sub { margin: 0 0 14px; font-size: 11px; color: var(--muted); }
     .toolbar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
     .live { font-size: 11px; color: var(--muted); margin-left: 6px; }
+    .auto-wrap { font-size: 12px; display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; }
+    .auto-wrap input[type="number"] { width: 58px; font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
     button { font: inherit; font-size: 12px; padding: 7px 14px; border-radius: 7px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
     button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
     table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
@@ -43,6 +45,7 @@
   <div class="toolbar">
     <button id="btn-print" class="primary">Cetak / Simpan PDF</button>
     <button id="btn-reload">Muat Ulang Data SIPD</button>
+    <label class="auto-wrap"><input type="checkbox" id="auto-on"> Muat ulang otomatis tiap <input type="number" id="auto-min" min="1" max="1440" value="5"> menit</label>
     <span class="live" id="live">Memuat…</span>
   </div>
   <p class="sub" id="sub">Memuat data…</p>
