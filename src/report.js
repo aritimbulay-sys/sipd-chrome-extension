@@ -7,6 +7,7 @@
   var NUM_COLS = [2, 3, 4];
   var STATUS_COL = 7;
   var KET_COL = 6;
+  var CENTER_COLS = [0, 5, 6, 7];
 
   var sub = document.getElementById('sub');
   var wrap = document.getElementById('wrap');
@@ -84,7 +85,7 @@
         var cls = '';
         var content;
         if (report.pctCols.indexOf(c) !== -1) {
-          cls = ' class="num"';
+          cls = '';
           content = fmtPct(v);
         } else if (NUM_COLS.indexOf(c) !== -1) {
           cls = ' class="num"';
@@ -103,6 +104,9 @@
           if (v === 'Sudah Sesuai') cls = ' class="ok"';
           else if (v === 'Kurang Input') cls = ' class="kurang"';
           else if (v === 'Lebih Input') cls = ' class="lebih"';
+        }
+        if (CENTER_COLS.indexOf(c) !== -1) {
+          cls = cls ? cls.replace('class="', 'class="ctr ') : ' class="ctr"';
         }
         out += '<td' + cls + '>' + content + '</td>';
       }
