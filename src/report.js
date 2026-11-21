@@ -147,225 +147,66 @@
     });
   }
 
-  function getPageZoom(callback) {
-    chrome.tabs.getCurrent(function (tab) {
-      if (!tab || !chrome.tabs.getZoom) {
-        callback(1);
-        return;
-      }
-      chrome.tabs.getZoom(tab.id, function (z) {
-        var zoom = typeof z === 'number' && z > 0 ? z : 1;
-        callback(Math.max(0.25, Math.min(5, zoom)));
-      });
-    });
-  }
-
   function exportPng() {
     if (!lastRender) {
       live.textContent = 'Laporan belum siap. Tunggu data tampil lalu coba lagi.';
       return;
     }
-    getPageZoom(function (zoom) { drawPng(zoom); });
-  }
+    var title = document.getElementById('title');
+    var foot = document.getElementById('foot');
+    var dpr = window.devicePixelRatio || 1;
+    var pageW = document.documentElement.clientWidth;
+    var contentH = Math.ceil(foot.getBoundingClientRect().bottom - title.getBoundingClientRect().top);
+    var H = contentH + 48;
 
-  function drawPng(zoom) {
-    if (!lastRender) return;
-    var report = lastRender.report;
-    var stag = lastRender.stag || {};
-    var rows = report.rows;
-    var cols = report.columns;
-    var PAD = 8;
-    var SCALE = 2 * zoom;
-    var FONT = 'bold 11px Arial, Helvetica, sans-serif';
-    var FONT_HEAD = 'bold 11px Arial, Helvetica, sans-serif';
-    var FONT_BADGE = 'bold 9px Arial, Helvetica, sans-serif';
-    var measureCtx = document.createElement('canvas').getContext('2d');
-    var KET_COLOR = { 'Sudah Sesuai': '#065f46', 'Kurang Input': '#92400e', 'Lebih Input': '#991b1b' };
+    var cssText = Array.prototype.map.call(document.querySelectorAll('style'), function (s) {
+      return s.textContent;
+    }).join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-    function textOf(r, c) {
-      var v = r[c];
-      if (report.pctCols.indexOf(c) !== -1) return fmtPct(v);
-      if (NUM_COLS.indexOf(c) !== -1) return fmt(v);
-      if (c === STATUS_COL) return v === 'Sudah Validasi' || v === 'Belum Validasi' ? v : '';
-      return v == null ? '' : String(v);
-    }
+    var inner = ['title', 'summary', 'sub', 'wrap', 'foot'].map(function (id) {
+      var el = document.getElementById(id);
+      return el ? el.outerHTML : '';
+    }).join('');
 
-    function alignOf(c) {
-      if (NUM_COLS.indexOf(c) !== -1) return 'right';
-      if (report.pctCols.indexOf(c) !== -1 || CENTER_COLS.indexOf(c) !== -1) return 'center';
-      return 'left';
-    }
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + pageW + '" height="' + H + '">' +
+      '<foreignObject x="0" y="0" width="' + pageW + '" height="' + H + '">' +
+      '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + pageW + 'px;height:' + H + 'px;padding:24px;box-sizing:border-box;background:#fff;">' +
+      '<style>' + cssText + '</style>' + inner +
+      '</div></foreignObject></svg>';
 
-    measureCtx.font = FONT;
-    var widths = cols.map(function (name, c) {
-      var w = measureCtx.measureText(String(name)).width;
-      measureCtx.font = FONT;
-      for (var i = 1; i < rows.length; i++) {
-        var t = textOf(rows[i], c);
-        var extra = 0;
-        if (c === 1 && stag[rows[i][1]]) {
-          measureCtx.font = FONT_BADGE;
-          extra = measureCtx.measureText('Stagnan').width + 14;
-          measureCtx.font = FONT;
-        }
-        w = Math.max(w, measureCtx.measureText(t).width + extra);
-      }
-      if (c === STATUS_COL) w = Math.max(w, 110);
-      return Math.ceil(w + PAD * 2);
-    });
-
-    var MARGIN = 14;
-    var TITLE_H = 22;
-    var LINE_H = 16;
-    var ROW_H = 24;
-    var HEAD_H = 24;
-    var tableW = widths.reduce(function (a, b) { return a + b; }, 0);
-    var W = Math.max(tableW, 900) + MARGIN * 2;
-
-    var opdRows = rows.slice(1, rows.length - 1);
-    var sesuai = opdRows.filter(function (r) { return r[6] === 'Sudah Sesuai'; }).length;
-    var belum = opdRows.length - sesuai;
-    var title = document.getElementById('title').textContent;
-    var sub = document.getElementById('sub').textContent;
-
-    var y = MARGIN;
-    var H = MARGIN + TITLE_H + LINE_H * 3 + 8 + HEAD_H + ROW_H * (rows.length - 1) + MARGIN;
-
-    var canvas = document.createElement('canvas');
-    canvas.width = W * SCALE;
-    canvas.height = H * SCALE;
-    var ctx = canvas.getContext('2d');
-    ctx.scale(SCALE, SCALE);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, H);
-    ctx.textBaseline = 'middle';
-
-    function roundRect(x, yy, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, yy);
-      ctx.arcTo(x + w, yy, x + w, yy + h, r);
-      ctx.arcTo(x + w, yy + h, x, yy + h, r);
-      ctx.arcTo(x, yy + h, x, yy, r);
-      ctx.arcTo(x, yy, x + w, yy, r);
-      ctx.closePath();
-    }
-
-    function badge(text, x, yy, bg, font) {
-      ctx.font = font;
-      var w = ctx.measureText(text).width + 12;
-      var h = font === FONT_BADGE ? 14 : 16;
-      roundRect(x, yy - h / 2, w, h, 3);
-      ctx.fillStyle = bg;
-      ctx.fill();
+    var img = new Image();
+    img.onload = function () {
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(pageW * dpr);
+      canvas.height = Math.round(H * dpr);
+      var ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'left';
-      ctx.fillText(text, x + 6, yy + 0.5);
-      return w;
-    }
-
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 16px Arial, Helvetica, sans-serif';
-    ctx.fillStyle = '#1d4ed8';
-    ctx.fillText(title, MARGIN, y + TITLE_H / 2);
-    y += TITLE_H + 4;
-
-    ctx.font = 'bold 12px Arial, Helvetica, sans-serif';
-    ctx.fillStyle = '#000000';
-    ctx.fillText('OPD sudah sesuai : ' + sesuai, MARGIN, y + LINE_H / 2);
-    y += LINE_H;
-    ctx.fillText('OPD belum sesuai : ' + belum, MARGIN, y + LINE_H / 2);
-    y += LINE_H;
-    ctx.font = '10px Arial, Helvetica, sans-serif';
-    ctx.fillStyle = '#334155';
-    ctx.fillText(sub, MARGIN, y + LINE_H / 2);
-    y += LINE_H + 8;
-
-    var x0 = MARGIN;
-    var colX = [];
-    var cx = x0;
-    widths.forEach(function (w, c) { colX.push(cx); cx += w; });
-
-    function rowBg(fillKey, isTotal) {
-      if (isTotal) return '#e8efff';
-      if (fillKey === 'hijau') return '#92d050';
-      if (fillKey === 'merah') return '#ff5050';
-      return '#ffffff';
-    }
-
-    function drawRow(r, isTotal, fillKey, top, h, isHead) {
-      var bg = isHead ? '#eef2f9' : rowBg(fillKey, isTotal);
-      ctx.fillStyle = bg;
-      ctx.fillRect(x0, top, tableW, h);
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x0 + 0.5, top + 0.5, tableW - 1, h - 1);
-      for (var c = 0; c < cols.length; c++) {
-        if (c > 0) {
-          ctx.beginPath();
-          ctx.moveTo(colX[c] + 0.5, top);
-          ctx.lineTo(colX[c] + 0.5, top + h);
-          ctx.strokeStyle = '#cbd5e1';
-          ctx.stroke();
-        }
-        var mid = top + h / 2;
-        var align = isHead ? 'center' : alignOf(c);
-        var textX = align === 'left' ? colX[c] + PAD
-          : align === 'right' ? colX[c] + widths[c] - PAD
-          : colX[c] + widths[c] / 2;
-        ctx.textAlign = align;
-        if (isHead) {
-          ctx.font = FONT_HEAD;
-          ctx.fillStyle = '#000000';
-          ctx.fillText(String(cols[c]), textX, mid);
-          continue;
-        }
-        var t = textOf(r, c);
-        if (c === STATUS_COL) {
-          if (t) {
-            var bgB = t === 'Sudah Validasi' ? '#16a34a' : '#dc2626';
-            ctx.textAlign = 'left';
-            ctx.font = FONT_BADGE;
-            var bw = ctx.measureText(t).width + 12;
-            badge(t, colX[c] + (widths[c] - bw) / 2, mid, bgB, FONT_BADGE);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      try {
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            live.textContent = 'Gagal membuat PNG.';
+            return;
           }
-          continue;
-        }
-        ctx.font = FONT;
-        ctx.fillStyle = '#000000';
-        if (c === 6) ctx.fillStyle = KET_COLOR[r[6]] || '#000000';
-        ctx.fillText(t, textX, mid);
-        if (c === 1 && !isTotal && stag[r[1]]) {
-          ctx.font = FONT;
-          var nameW = ctx.measureText(t).width;
-          badge('Stagnan', colX[c] + PAD + nameW + 6, mid, '#dc2626', FONT_BADGE);
-        }
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'Laporan-Progres-SIPD_' + stampNow() + '.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 20000);
+          live.textContent = 'PNG tersimpan (' + canvas.width + ' × ' + canvas.height + ' px).';
+        }, 'image/png');
+      } catch (e) {
+        live.textContent = 'Gagal membuat PNG: ' + (e && e.message ? e.message : e);
       }
-    }
-
-    drawRow(cols, false, '', y, HEAD_H, true);
-    y += HEAD_H;
-    for (var i = 1; i < rows.length - 1; i++) {
-      drawRow(rows[i], false, report.fill[i], y, ROW_H, false);
-      y += ROW_H;
-    }
-    var last = rows.length - 1;
-    drawRow(rows[last], true, report.fill[last], y, ROW_H, false);
-
-    canvas.toBlob(function (blob) {
-      if (!blob) {
-        live.textContent = 'Gagal membuat PNG.';
-        return;
-      }
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'Laporan-Progres-SIPD_' + stampNow() + '.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 20000);
-      live.textContent = 'PNG tersimpan (zoom ' + Math.round(zoom * 100) + '%).';
-    }, 'image/png');
+    };
+    img.onerror = function () {
+      live.textContent = 'Gagal merender halaman menjadi gambar.';
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
   function stampNow() {
