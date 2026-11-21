@@ -171,7 +171,7 @@
 
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + pageW + '" height="' + H + '">' +
       '<foreignObject x="0" y="0" width="' + pageW + '" height="' + H + '">' +
-      '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + pageW + 'px;height:' + H + 'px;padding:24px;box-sizing:border-box;background:#fff;">' +
+      '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + pageW + 'px;height:' + H + 'px;padding:24px;box-sizing:border-box;background:#fff;font-family:Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;font-size:12px;color:#0f172a;">' +
       '<style>' + cssText + '</style>' + inner +
       '</div></foreignObject></svg>';
 
