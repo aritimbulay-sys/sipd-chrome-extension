@@ -147,17 +147,35 @@
     });
   }
 
+  function getPageZoom(callback) {
+    chrome.tabs.getCurrent(function (tab) {
+      if (!tab || !chrome.tabs.getZoom) {
+        callback(1);
+        return;
+      }
+      chrome.tabs.getZoom(tab.id, function (z) {
+        var zoom = typeof z === 'number' && z > 0 ? z : 1;
+        callback(Math.max(0.25, Math.min(5, zoom)));
+      });
+    });
+  }
+
   function exportPng() {
     if (!lastRender) {
       live.textContent = 'Laporan belum siap. Tunggu data tampil lalu coba lagi.';
       return;
     }
+    getPageZoom(function (zoom) { drawPng(zoom); });
+  }
+
+  function drawPng(zoom) {
+    if (!lastRender) return;
     var report = lastRender.report;
     var stag = lastRender.stag || {};
     var rows = report.rows;
     var cols = report.columns;
     var PAD = 8;
-    var SCALE = 2;
+    var SCALE = 2 * zoom;
     var FONT = 'bold 11px Arial, Helvetica, sans-serif';
     var FONT_HEAD = 'bold 11px Arial, Helvetica, sans-serif';
     var FONT_BADGE = 'bold 9px Arial, Helvetica, sans-serif';
@@ -346,7 +364,7 @@
       a.click();
       a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 20000);
-      live.textContent = 'PNG tersimpan.';
+      live.textContent = 'PNG tersimpan (zoom ' + Math.round(zoom * 100) + '%).';
     }, 'image/png');
   }
 
