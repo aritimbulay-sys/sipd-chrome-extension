@@ -169,7 +169,12 @@
       return el ? serializer.serializeToString(el) : '';
     }).join('');
 
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + pageW + '" height="' + H + '">' +
+    var S = Math.min(4, Math.max(2, dpr * 2));
+    while (H * S > 12000 || pageW * S > 12000) S -= 0.5;
+    var outW = Math.round(pageW * S);
+    var outH = Math.round(H * S);
+
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + outW + '" height="' + outH + '" viewBox="0 0 ' + pageW + ' ' + H + '">' +
       '<foreignObject x="0" y="0" width="' + pageW + '" height="' + H + '">' +
       '<div xmlns="http://www.w3.org/1999/xhtml" style="width:' + pageW + 'px;height:' + H + 'px;padding:24px;box-sizing:border-box;background:#fff;font-family:Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;font-size:12px;color:#0f172a;">' +
       '<style>' + cssText + '</style>' + inner +
@@ -178,8 +183,8 @@
     var img = new Image();
     img.onload = function () {
       var canvas = document.createElement('canvas');
-      canvas.width = Math.round(pageW * dpr);
-      canvas.height = Math.round(H * dpr);
+      canvas.width = outW;
+      canvas.height = outH;
       var ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
