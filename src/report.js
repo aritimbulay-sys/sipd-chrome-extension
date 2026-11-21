@@ -163,9 +163,10 @@
       return s.textContent;
     }).join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
+    var serializer = new XMLSerializer();
     var inner = ['title', 'summary', 'sub', 'wrap', 'foot'].map(function (id) {
       var el = document.getElementById(id);
-      return el ? el.outerHTML : '';
+      return el ? serializer.serializeToString(el) : '';
     }).join('');
 
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + pageW + '" height="' + H + '">' +
