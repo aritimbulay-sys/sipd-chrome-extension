@@ -17,6 +17,7 @@
   "background": {
     "service_worker": "src/background.js"
   },
+  "options_page": "src/options.html",
   "action": {
     "default_title": "SIPD Anggaran Scraper",
     "default_popup": "src/popup.html",

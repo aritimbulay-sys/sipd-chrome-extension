@@ -138,6 +138,21 @@ function isDuplicate(hash) {
   }).catch(function () { return false; });
 }
 
+/* Kirim record ke server web (NAS) bila sinkronisasi diaktifkan. */
+function pushToServer(record) {
+  chrome.storage.local.get({ serverUrl: '', syncEnabled: false }, function (items) {
+    if (!items.syncEnabled || !items.serverUrl) return;
+    var url = String(items.serverUrl).replace(/\/+$/, '') + '/api/captures';
+    try {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      }).catch(function () { /* abaikan */ });
+    } catch (e) { /* abaikan */ }
+  });
+}
+
 function saveCapture(record) {
   return DB.findByHash(record.hash).then(function (existing) {
     if (existing) {
@@ -175,7 +190,7 @@ function handleNetwork(message) {
         rowSignature(normalized.rows, normalized.columns)
       ].join('|'));
 
-      return saveCapture({
+      var record = {
         kind: 'api',
         url: message.url,
         path: candidate.path,
@@ -187,7 +202,11 @@ function handleNetwork(message) {
         count: normalized.rows.length,
         truncated: !!normalized.truncated,
         hash: hash
-      }).then(function (res) { if (res.saved) saved++; });
+      };
+
+      return saveCapture(record).then(function (res) {
+        if (res.saved) { saved++; pushToServer(record); }
+      });
     });
   });
 
@@ -242,7 +261,7 @@ function handleDOM(message) {
         rowSignature(normalized.rows, columns)
       ].join('|'));
 
-      return saveCapture({
+      var record = {
         kind: 'dom',
         url: message.url,
         path: table.name || 'Tabel',
@@ -254,7 +273,11 @@ function handleDOM(message) {
         count: normalized.rows.length,
         truncated: !!normalized.truncated,
         hash: hash
-      }).then(function (res) { if (res.saved) saved++; });
+      };
+
+      return saveCapture(record).then(function (res) {
+        if (res.saved) { saved++; pushToServer(record); }
+      });
     });
   });
 
