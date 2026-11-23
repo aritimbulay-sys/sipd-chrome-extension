@@ -58,6 +58,15 @@
       });
       const data = await res.json();
       if (res.ok) {
+        // kirim juga state selisih (stagnan)
+        try {
+          const st = await new Promise((resolve) => chrome.storage.local.get({ selisihState: {} }, (it) => resolve(it.selisihState || {})));
+          if (Object.keys(st).length) {
+            await fetch(cfg.serverUrl.replace(/\/+$/, '') + '/api/selisih-state', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(st)
+            });
+          }
+        } catch (e) {}
         status.style.color = '#065f46';
         status.textContent = 'Berhasil: ' + (data.added || 0) + ' data baru dikirim (total server: ' + data.total + ').';
       } else {

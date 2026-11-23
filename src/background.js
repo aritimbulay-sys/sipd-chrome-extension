@@ -138,6 +138,21 @@ function isDuplicate(hash) {
   }).catch(function () { return false; });
 }
 
+/* Kirim state selisih (untuk badge Stagnan) ke server web (NAS). */
+function pushSelisihStateToServer(state) {
+  chrome.storage.local.get({ serverUrl: '', syncEnabled: false }, function (items) {
+    if (!items.syncEnabled || !items.serverUrl) return;
+    var url = String(items.serverUrl).replace(/\/+$/, '') + '/api/selisih-state';
+    try {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state || {})
+      }).catch(function () { /* abaikan */ });
+    } catch (e) { /* abaikan */ }
+  });
+}
+
 /* Kirim record ke server web (NAS) bila sinkronisasi diaktifkan. */
 function pushToServer(record) {
   chrome.storage.local.get({ serverUrl: '', syncEnabled: false }, function (items) {
@@ -236,7 +251,10 @@ function updateSelisihState() {
           var old = prev[nad];
           next[nad] = (old && old.selisih === sel) ? old : { selisih: sel, changedAt: now };
         });
-        chrome.storage.local.set({ selisihState: next }, resolve);
+        chrome.storage.local.set({ selisihState: next }, function () {
+          pushSelisihStateToServer(next);
+          resolve();
+        });
       });
     });
   }).catch(function () { /* abaikan */ });
