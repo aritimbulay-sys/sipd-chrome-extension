@@ -340,6 +340,21 @@
     }).then(step);
   }
 
+  /* ---- Redirect otomatis ke ?baris=100 agar langsung 100 baris ---- */
+  (function ensureBaris100() {
+    try {
+      if (!IS_TOP) return;
+      if (!isCascadingPath()) return;
+      var u = new URL(location.href);
+      if (u.searchParams.get('baris') === '100') return;
+      u.searchParams.set('baris', '100');
+      // hindari loop: hanya redirect sekali
+      if (sessionStorage.getItem('sipd_baris_redirected') === '1') return;
+      sessionStorage.setItem('sipd_baris_redirected', '1');
+      location.replace(u.toString());
+    } catch (e) { /* abaikan */ }
+  })();
+
   /* ---- Otomatis: 100 data per halaman saat membuka halaman cascading ---- */
   var autoPageSizeFailures = 0;
   var autoPageSizeBusy = false;
@@ -386,6 +401,7 @@
     if (location.pathname !== lastPath) {
       lastPath = location.pathname;
       autoPageSizeFailures = 0;
+      try { sessionStorage.removeItem('sipd_baris_redirected'); } catch (e) { /* abaikan */ }
     }
     ensureMaxPageSize();
   }, 1000);
