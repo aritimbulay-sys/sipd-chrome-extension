@@ -503,23 +503,26 @@
       }
     }
 
-    // Perbandingan pasangan kunci unit vs skpd/perangkat/opd
+    // Perbandingan pasangan kunci unit vs skpd/perangkat/opd dengan basis yang sama
     var keys = Object.keys(r);
     for (var i = 0; i < keys.length; i++) {
       var ku = keys[i];
       if (!/unit/i.test(ku)) continue;
       var vu = r[ku];
       if (vu === null || vu === undefined || String(vu).trim() === '') continue;
+      var baseU = ku.toLowerCase().replace(/unit/g, '').replace(/[^a-z0-9]/g, '');
       for (var j = 0; j < keys.length; j++) {
         var ks = keys[j];
         if (!/(skpd|perangkat|opd|induk)/i.test(ks)) continue;
         if (ks === ku) continue;
         var vs = r[ks];
         if (vs === null || vs === undefined || String(vs).trim() === '') continue;
-        if (String(vu).trim() !== String(vs).trim()) return true;
+        var baseS = ks.toLowerCase().replace(/(skpd|perangkat|opd|induk)/g, '').replace(/[^a-z0-9]/g, '');
+        if (baseU !== '' && baseU === baseS) {
+          if (String(vu).trim() !== String(vs).trim()) return true;
+        }
       }
     }
-
     // id_unit vs id_skpd (kasus umum)
     if (r.id_unit && r.id_skpd && String(r.id_unit) !== String(r.id_skpd)) return true;
     if (r.kode_unit && r.kode_skpd && String(r.kode_unit) !== String(r.kode_skpd)) return true;
