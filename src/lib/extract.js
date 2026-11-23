@@ -537,8 +537,12 @@
     var listSkpd = newestFirst.filter(function (c) { return /(list_skpd|cascading)/i.test(String(c.url || '')); });
     var source = listSkpd.length ? [listSkpd[0]] : newestFirst;
     var yearCount = {};
+    var taCount = {};
 
     source.forEach(function (cap) {
+      if (cap.tahunAnggaran) {
+        taCount[cap.tahunAnggaran] = (taCount[cap.tahunAnggaran] || 0) + 1;
+      }
       var columns = cap.columns || [];
       var recs = cap.rows || [];
       var role = E.detectRoles(columns, recs);
@@ -605,9 +609,15 @@
     rows.push(['', 'TOTAL', totalPagu, totalRincian, totalSelisih, totalProgres, totalKet, '']);
     fill.push(fillKey(totalKet));
     var tahun = '';
-    Object.keys(yearCount).forEach(function (y) {
-      if (!tahun || yearCount[y] > yearCount[tahun]) tahun = y;
-    });
+    if (Object.keys(taCount).length) {
+      Object.keys(taCount).forEach(function (y) {
+        if (!tahun || taCount[y] > taCount[tahun]) tahun = y;
+      });
+    } else {
+      Object.keys(yearCount).forEach(function (y) {
+        if (!tahun || yearCount[y] > yearCount[tahun]) tahun = y;
+      });
+    }
     return { columns: HEADER.slice(), rows: rows, fill: fill, pctCols: [5], tahun: tahun };
   };
 

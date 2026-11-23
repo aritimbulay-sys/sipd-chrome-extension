@@ -4,6 +4,50 @@
   if (window.__SIPD_BRIDGE__) return;
   window.__SIPD_BRIDGE__ = true;
 
+  function detectTahunAnggaran() {
+    try {
+      var u = new URL(location.href);
+      var keys = ['tahun', 'ta', 'year', 'thn', 'tahun_anggaran', 'tahunAnggaran'];
+      for (var i = 0; i < keys.length; i++) {
+        var v = u.searchParams.get(keys[i]);
+        if (v && /^\d{4}$/.test(String(v).trim())) return String(v).trim();
+      }
+    } catch (e) { /* abaikan */ }
+
+    // selected option in select
+    try {
+      var selects = document.querySelectorAll('select');
+      for (var s = 0; s < selects.length; s++) {
+        var sel = selects[s];
+        var idx = sel.selectedIndex;
+        if (idx >= 0 && sel.options && sel.options[idx]) {
+          var txt = String(sel.options[idx].textContent || sel.options[idx].value || '').trim();
+          if (/^\d{4}$/.test(txt)) return txt;
+        }
+      }
+    } catch (e) { /* abaikan */ }
+
+    // combobox / selected value
+    try {
+      var nodes = document.querySelectorAll('[role="combobox"], .ant-select-selection-item, .mat-select-value-text, .p-dropdown-label, .el-select .el-input__inner');
+      for (var n = 0; n < nodes.length; n++) {
+        var t = String(nodes[n].textContent || nodes[n].value || '').trim();
+        if (/^\d{4}$/.test(t)) return t;
+      }
+    } catch (e) { /* abaikan */ }
+
+    // text regex
+    try {
+      var body = document.body ? (document.body.innerText || '') : '';
+      var m = body.match(/tahun\s*anggaran[^0-9]{0,20}(\d{4})/i);
+      if (m) return m[1];
+      m = body.match(/ta\.?\s*\:?\s*(\d{4})/i);
+      if (m) return m[1];
+    } catch (e) { /* abaikan */ }
+
+    return null;
+  }
+
   var IS_TOP = (function () {
     try { return window.top === window; } catch (e) { return false; }
   })();
@@ -39,7 +83,8 @@
         url: data.url,
         method: data.method,
         body: data.body,
-        at: data.at
+        at: data.at,
+        tahunAnggaran: detectTahunAnggaran()
       });
     }
   }, false);
@@ -205,6 +250,7 @@
             url: location.href,
             label: (document.title || 'Tabel') + ' · hal. ' + page,
             page: page,
+            tahunAnggaran: detectTahunAnggaran(),
             tables: payload
           })
         : Promise.resolve();

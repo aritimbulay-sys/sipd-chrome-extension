@@ -208,6 +208,7 @@ function handleNetwork(message) {
       var record = {
         kind: 'api',
         url: message.url,
+        tahunAnggaran: message.tahunAnggaran || null,
         path: candidate.path,
         label: candidate.path.replace(/^\$\.?/, '') + ' · ' + U.shortUrl(message.url),
         method: message.method || 'GET',
@@ -282,6 +283,7 @@ function handleDOM(message) {
       var record = {
         kind: 'dom',
         url: message.url,
+        tahunAnggaran: message.tahunAnggaran || null,
         path: table.name || 'Tabel',
         label: (message.label || table.name || 'Tabel') + (table.name ? ' [' + table.name + ']' : ''),
         page: message.page || 1,
