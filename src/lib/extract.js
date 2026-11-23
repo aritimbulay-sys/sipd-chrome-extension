@@ -486,51 +486,34 @@
   function isUnitSkpdRow(r, role, columns) {
     if (!r || typeof r !== 'object') return false;
 
-    // Flag eksplisit dari API
-    var unitFlags = ['is_unit', 'unit_skpd', 'is_unit_skpd', 'flag_unit'];
-    for (var fi = 0; fi < unitFlags.length; fi++) {
-      if (r.hasOwnProperty(unitFlags[fi])) {
-        var fv = r[unitFlags[fi]];
-        if (fv === 1 || fv === '1' || fv === true || fv === 'true') return true;
-      }
-    }
-    var levelKeys = ['level', 'tingkat', 'depth', 'lvl'];
-    for (var li = 0; li < levelKeys.length; li++) {
-      if (r.hasOwnProperty(levelKeys[li])) {
-        var lv = r[levelKeys[li]];
-        var ln = (typeof lv === 'number') ? lv : parseInt(String(lv), 10);
-        if (isFinite(ln) && ln > 1) return true;
+    var name = '';
+    if (role && role.namaPD) name = String(r[role.namaPD] || '').trim();
+    if (!name && role && role.kodePD) name = String(r[role.kodePD] || '').trim();
+    if (!name && r.nama_skpd) name = String(r.nama_skpd).trim();
+    if (!name && r.nama) name = String(r.nama).trim();
+    if (!name && r.perangkat_daerah) name = String(r.perangkat_daerah).trim();
+    var lowerName = name.toLowerCase();
+
+    if (lowerName.indexOf('unit skpd') !== -1) return true;
+    if (/^skpd\s+[0-9.]/i.test(name)) return true;
+
+    var unitKeywords = ['uptd', 'puskesmas', 'kelurahan', 'sekretariat ', 'bidang ', 'seksi ', 'sub bagian', 'subbag', 'unit '];
+    for (var i = 0; i < unitKeywords.length; i++) {
+      if (lowerName.indexOf(unitKeywords[i]) !== -1) {
+        if (lowerName.indexOf('sekretariat daerah') !== -1) continue;
+        if (lowerName.indexOf('sekretariat dprd') !== -1) continue;
+        return true;
       }
     }
 
-    // Perbandingan pasangan kunci unit vs skpd/perangkat/opd dengan basis yang sama
-    var keys = Object.keys(r);
-    for (var i = 0; i < keys.length; i++) {
-      var ku = keys[i];
-      if (!/unit/i.test(ku)) continue;
-      var vu = r[ku];
-      if (vu === null || vu === undefined || String(vu).trim() === '') continue;
-      var baseU = ku.toLowerCase().replace(/unit/g, '').replace(/[^a-z0-9]/g, '');
-      for (var j = 0; j < keys.length; j++) {
-        var ks = keys[j];
-        if (!/(skpd|perangkat|opd|induk)/i.test(ks)) continue;
-        if (ks === ku) continue;
-        var vs = r[ks];
-        if (vs === null || vs === undefined || String(vs).trim() === '') continue;
-        var baseS = ks.toLowerCase().replace(/(skpd|perangkat|opd|induk)/g, '').replace(/[^a-z0-9]/g, '');
-        if (baseU !== '' && baseU === baseS) {
-          if (String(vu).trim() !== String(vs).trim()) return true;
-        }
-      }
-    }
-    // id_unit vs id_skpd (kasus umum)
     if (r.id_unit && r.id_skpd && String(r.id_unit) !== String(r.id_skpd)) return true;
     if (r.kode_unit && r.kode_skpd && String(r.kode_unit) !== String(r.kode_skpd)) return true;
 
-    // is_skpd flag (1 = SKPD induk, 0 = unit)
+    if (r.hasOwnProperty('level') && parseInt(r.level) > 1) return true;
+    if (r.hasOwnProperty('depth') && parseInt(r.depth) > 1) return true;
     if (r.hasOwnProperty('is_skpd') && (r.is_skpd === 0 || r.is_skpd === '0' || r.is_skpd === false)) return true;
+    if (r.hasOwnProperty('is_unit') && (r.is_unit === 1 || r.is_unit === '1' || r.is_unit === true)) return true;
 
-    // DOM: kolom unit terdeteksi dan berbeda dari nama PD
     if (role && role.unit) {
       var unitVal = String(r[role.unit] || '').trim();
       var skpdVal = String(r[role.namaPD] || '').trim();
@@ -539,6 +522,7 @@
 
     return false;
   }
+
 
   E.build3ColumnReport = function (captures) {
     var HEADER = ['NO', 'Perangkat Daerah', 'Batasan Pagu SKPD', 'Rincian Belanja', 'Selisih', 'Progres', 'Keterangan', 'Status Validasi'];
@@ -550,7 +534,7 @@
     var no = 0;
 
     var newestFirst = (captures || []).slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
-    var listSkpd = newestFirst.filter(function (c) { return /list_skpd/i.test(String(c.url || '')); });
+    var listSkpd = newestFirst.filter(function (c) { return /(list_skpd|cascading)/i.test(String(c.url || '')); });
     var source = listSkpd.length ? [listSkpd[0]] : newestFirst;
     var yearCount = {};
 
@@ -566,7 +550,7 @@
         if (!nad && role.kodePD) nad = text(pick(r, role.kodePD));
         if (!nad) return;
 
-        // Lewati baris yang merupakan unit SKPD (anak), hanya perangkat daerah induk yang dihitung
+        // Lewati baris yang merupakan unit SKPD (anak) atau breakdown SKPD
         if (isUnitSkpdRow(r, role, columns)) return;
 
         var key = nad.toLowerCase().replace(/\s+/g, ' ');
@@ -578,6 +562,9 @@
         var rincianRaw = pick(r, role.rincian);
         var rincianNum = U.parseIndoNumber(rincianRaw);
         if (paguNum === null && rincianNum === null) return;
+
+        // Guard tambahan: jika pagu kosong dan nama mengandung SKPD/UNIT, bukan OPD induk
+        if ((paguNum === null || paguNum === 0) && (nad.toUpperCase().indexOf('SKPD') !== -1 || nad.toUpperCase().indexOf('UNIT') !== -1)) return;
 
         var yr = text(pick(r, role.tahun));
         if (yr) yearCount[yr] = (yearCount[yr] || 0) + 1;
