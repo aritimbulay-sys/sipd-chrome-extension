@@ -618,6 +618,7 @@
         if (!tahun || yearCount[y] > yearCount[tahun]) tahun = y;
       });
     }
+    if (!tahun) tahun = '2027';
     return { columns: HEADER.slice(), rows: rows, fill: fill, pctCols: [5], tahun: tahun };
   };
 
