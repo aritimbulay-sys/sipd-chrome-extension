@@ -252,7 +252,7 @@
   var autoPageSizeBusy = false;
 
   function isCascadingPath() {
-    return /\/penganggaran\/anggaran\/cascading/i.test(location.pathname);
+    return /\/penganggaran\/(penganggaran\/)?anggaran\/cascading/i.test(location.pathname);
   }
 
   function currentPageSize() {
@@ -282,13 +282,18 @@
   }
 
   var lastPath = location.pathname;
+  ensureMaxPageSize();
   setInterval(function () {
     if (location.pathname !== lastPath) {
       lastPath = location.pathname;
       autoPageSizeFailures = 0;
     }
     ensureMaxPageSize();
-  }, 2000);
+  }, 1000);
+  try {
+    var mo = new MutationObserver(function () { ensureMaxPageSize(); });
+    if (document.documentElement) mo.observe(document.documentElement, { childList: true, subtree: true });
+  } catch (e) { /* abaikan */ }
 
   /* ---- 3. Perintah dari popup ---- */
   chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {

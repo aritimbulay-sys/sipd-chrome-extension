@@ -130,6 +130,11 @@
    * ------------------------------------------------------------------ */
 
   var ROLES = [
+    ['unit', [
+      /^(nama|kode)_?(unit|sub_?unit|sub_?skpd)$/i,
+      /unit.?pelaksana/i,
+      /sub.?unit/i
+    ]],
     ['namaPD', [
       /nama.*(perangkat.?daerah|skpd|opd|dinas|badan|unit|sub.?unit)/i,
       /(perangkat.?daerah|skpd|opd|sub.?unit|unit|dinas|badan).*nama/i,
@@ -478,23 +483,57 @@
     return v === null || v === undefined ? '' : v;
   }
 
-  /* Deteksi apakah baris adalah unit SKPD (anak), bukan perangkat daerah induk. */
   function isUnitSkpdRow(r, role, columns) {
-    // Jika ada kolom yang menunjukkan unit/sub unit dan terisi, anggap sebagai unit SKPD
-    var unitCols = (columns || []).filter(function (c) {
-      return /unit|sub.?unit|sub.?skpd/i.test(String(c));
-    });
-    for (var i = 0; i < unitCols.length; i++) {
-      var v = r[unitCols[i]];
-      if (v !== null && v !== undefined && String(v).trim() !== '') return true;
+    if (!r || typeof r !== 'object') return false;
+
+    // Flag eksplisit dari API
+    var unitFlags = ['is_unit', 'unit_skpd', 'is_unit_skpd', 'flag_unit'];
+    for (var fi = 0; fi < unitFlags.length; fi++) {
+      if (r.hasOwnProperty(unitFlags[fi])) {
+        var fv = r[unitFlags[fi]];
+        if (fv === 1 || fv === '1' || fv === true || fv === 'true') return true;
+      }
     }
-    // Fallback: jika nama perangkat daerah mengandung kata kunci unit
-    var nad = '';
-    if (role && role.namaPD) nad = String(r[role.namaPD] || '').toLowerCase();
-    var unitKeywords = ['sekretariat', 'bidang', 'upt', 'uptd', 'sub bagian', 'subbag', 'seksi', 'unit pelaksana', 'pokja'];
-    for (var k = 0; k < unitKeywords.length; k++) {
-      if (nad.indexOf(unitKeywords[k]) !== -1) return true;
+    var levelKeys = ['level', 'tingkat', 'depth', 'lvl'];
+    for (var li = 0; li < levelKeys.length; li++) {
+      if (r.hasOwnProperty(levelKeys[li])) {
+        var lv = r[levelKeys[li]];
+        var ln = (typeof lv === 'number') ? lv : parseInt(String(lv), 10);
+        if (isFinite(ln) && ln > 1) return true;
+      }
     }
+
+    // Perbandingan pasangan kunci unit vs skpd/perangkat/opd
+    var keys = Object.keys(r);
+    for (var i = 0; i < keys.length; i++) {
+      var ku = keys[i];
+      if (!/unit/i.test(ku)) continue;
+      var vu = r[ku];
+      if (vu === null || vu === undefined || String(vu).trim() === '') continue;
+      for (var j = 0; j < keys.length; j++) {
+        var ks = keys[j];
+        if (!/(skpd|perangkat|opd|induk)/i.test(ks)) continue;
+        if (ks === ku) continue;
+        var vs = r[ks];
+        if (vs === null || vs === undefined || String(vs).trim() === '') continue;
+        if (String(vu).trim() !== String(vs).trim()) return true;
+      }
+    }
+
+    // id_unit vs id_skpd (kasus umum)
+    if (r.id_unit && r.id_skpd && String(r.id_unit) !== String(r.id_skpd)) return true;
+    if (r.kode_unit && r.kode_skpd && String(r.kode_unit) !== String(r.kode_skpd)) return true;
+
+    // is_skpd flag (1 = SKPD induk, 0 = unit)
+    if (r.hasOwnProperty('is_skpd') && (r.is_skpd === 0 || r.is_skpd === '0' || r.is_skpd === false)) return true;
+
+    // DOM: kolom unit terdeteksi dan berbeda dari nama PD
+    if (role && role.unit) {
+      var unitVal = String(r[role.unit] || '').trim();
+      var skpdVal = String(r[role.namaPD] || '').trim();
+      if (unitVal && skpdVal && unitVal !== skpdVal) return true;
+    }
+
     return false;
   }
 
