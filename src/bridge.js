@@ -5,16 +5,20 @@
   window.__SIPD_BRIDGE__ = true;
 
   function detectTahunAnggaran() {
+    var found = null;
+
+    // 1. URL params
     try {
       var u = new URL(location.href);
-      var keys = ['tahun', 'ta', 'year', 'thn', 'tahun_anggaran', 'tahunAnggaran'];
+      var keys = ['tahun', 'ta', 'year', 'thn', 'tahun_anggaran', 'tahunAnggaran', 'ta_anggaran'];
       for (var i = 0; i < keys.length; i++) {
         var v = u.searchParams.get(keys[i]);
-        if (v && /^\d{4}$/.test(String(v).trim())) return String(v).trim();
+        if (v && /^\d{4}$/.test(String(v).trim())) { found = String(v).trim(); break; }
       }
     } catch (e) { /* abaikan */ }
+    if (found) { saveLastYear(found); return found; }
 
-    // selected option in select
+    // 2. Native select
     try {
       var selects = document.querySelectorAll('select');
       for (var s = 0; s < selects.length; s++) {
@@ -22,30 +26,73 @@
         var idx = sel.selectedIndex;
         if (idx >= 0 && sel.options && sel.options[idx]) {
           var txt = String(sel.options[idx].textContent || sel.options[idx].value || '').trim();
-          if (/^\d{4}$/.test(txt)) return txt;
+          if (/^\d{4}$/.test(txt)) { found = txt; break; }
         }
       }
     } catch (e) { /* abaikan */ }
+    if (found) { saveLastYear(found); return found; }
 
-    // combobox / selected value
+    // 3. Combobox / selected value text
     try {
-      var nodes = document.querySelectorAll('[role="combobox"], .ant-select-selection-item, .mat-select-value-text, .p-dropdown-label, .el-select .el-input__inner');
+      var nodes = document.querySelectorAll('[role="combobox"], [aria-haspopup="listbox"], .ant-select-selection-item, .mat-select-value-text, .p-dropdown-label, .el-select .el-input__inner, .ng-value-label');
       for (var n = 0; n < nodes.length; n++) {
         var t = String(nodes[n].textContent || nodes[n].value || '').trim();
-        if (/^\d{4}$/.test(t)) return t;
+        if (/^\d{4}$/.test(t)) { found = t; break; }
       }
     } catch (e) { /* abaikan */ }
+    if (found) { saveLastYear(found); return found; }
 
-    // text regex
+    // 4. Elemen dengan class/id mengandung tahun/year
+    try {
+      var els = document.querySelectorAll('[class*="tahun"], [class*="year"], [id*="tahun"], [id*="year"]');
+      for (var e = 0; e < els.length; e++) {
+        var et = String(els[e].textContent || '').trim();
+        var em = et.match(/(20\d{2})/);
+        if (em) { found = em[1]; break; }
+      }
+    } catch (e) { /* abaikan */ }
+    if (found) { saveLastYear(found); return found; }
+
+    // 5. Text regex
     try {
       var body = document.body ? (document.body.innerText || '') : '';
-      var m = body.match(/tahun\s*anggaran[^0-9]{0,20}(\d{4})/i);
-      if (m) return m[1];
-      m = body.match(/ta\.?\s*\:?\s*(\d{4})/i);
-      if (m) return m[1];
+      var m = body.match(/tahun\s*anggaran[^0-9]{0,30}(20\d{2})/i);
+      if (m) found = m[1];
+      if (!found) {
+        m = body.match(/\bta\.?\s*:?\s*(20\d{2})\b/i);
+        if (m) found = m[1];
+      }
+      if (!found) {
+        // cari tahun yang paling sering muncul di rentang 2020-2035
+        var counts = {};
+        var re = /\b(20[2-3]\d)\b/g;
+        var mm;
+        while ((mm = re.exec(body)) !== null) {
+          counts[mm[1]] = (counts[mm[1]] || 0) + 1;
+        }
+        var best = null, bestN = 0;
+        Object.keys(counts).forEach(function (y) {
+          if (counts[y] > bestN) { bestN = counts[y]; best = y; }
+        });
+        if (best && bestN >= 2) found = best;
+      }
+    } catch (e) { /* abaikan */ }
+    if (found) { saveLastYear(found); return found; }
+
+    // 6. Fallback: tahun terakhir yang tersimpan
+    try {
+      // synchronous not available; use cached global
+      if (window.__SIPD_LAST_YEAR__) return window.__SIPD_LAST_YEAR__;
     } catch (e) { /* abaikan */ }
 
     return null;
+  }
+
+  function saveLastYear(y) {
+    try { window.__SIPD_LAST_YEAR__ = y; } catch (e) { /* abaikan */ }
+    try {
+      chrome.storage.local.set({ sipdLastYear: y }, function () { void chrome.runtime.lastError; });
+    } catch (e) { /* abaikan */ }
   }
 
   var IS_TOP = (function () {
@@ -326,6 +373,12 @@
       autoPageSizeBusy = false;
     });
   }
+
+  try {
+    chrome.storage.local.get({ sipdLastYear: null }, function (items) {
+      if (items && items.sipdLastYear) window.__SIPD_LAST_YEAR__ = items.sipdLastYear;
+    });
+  } catch (e) { /* abaikan */ }
 
   var lastPath = location.pathname;
   ensureMaxPageSize();
