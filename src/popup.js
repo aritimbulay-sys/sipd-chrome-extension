@@ -201,7 +201,7 @@
     return currentTab().then(function (tab) {
       if (!tab || tab.id === undefined) throw new Error('Tidak ada tab aktif.');
       if (!isSipdUrl(tab.url)) {
-        throw new Error('Buka halaman SIPD (sipd-ri.kemendagri.go.id) pada tab aktif terlebih dahulu.');
+        throw new Error('Buka halaman SIPD (sipd.kemendagri.go.id) pada tab aktif terlebih dahulu.');
       }
       return chrome.tabs.sendMessage(tab.id, message).catch(function () {
         return injectBridge(tab.id).then(function () {

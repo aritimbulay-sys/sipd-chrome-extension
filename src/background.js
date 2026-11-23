@@ -22,7 +22,7 @@ chrome.storage.onChanged.addListener(function (changes, area) {
 });
 
 /* ---------------- tombol aktif hanya di halaman cascading ---------------- */
-var CASCADING_URL = /^https:\/\/sipd-ri\.kemendagri\.go\.id\/penganggaran\/anggaran\/cascading(?:[?#/]|$)/i;
+var CASCADING_URL = /^https:\/\/sipd\.kemendagri\.go\.id\/penganggaran\/penganggaran\/anggaran\/cascading(?:[?#/]|$)/i;
 
 function syncActionForTab(tabId, url) {
   var enabled = CASCADING_URL.test(String(url || ''));
@@ -57,7 +57,7 @@ chrome.tabs.onActivated.addListener(function (info) {
 
 /* ---------------- muat ulang otomatis halaman cascading ---------------- */
 var AUTO_RELOAD_ALARM = 'autoReloadSipd';
-var CASCADING_PATTERN = 'https://sipd-ri.kemendagri.go.id/penganggaran/anggaran/cascading*';
+var CASCADING_PATTERN = 'https://sipd.kemendagri.go.id/penganggaran/penganggaran/anggaran/cascading*';
 
 function reloadCascadingTab(callback) {
   chrome.tabs.query({ url: CASCADING_PATTERN }, function (tabs) {

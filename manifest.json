@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SIPD Anggaran Scraper",
   "version": "1.0.0",
-  "description": "Menarik data Nama Perangkat Daerah, Batasan Pagu SKPD, dan Rincian Belanja dari SIPD RI (sipd-ri.kemendagri.go.id) lalu mengekspornya ke Excel/CSV.",
+  "description": "Menarik data Nama Perangkat Daerah, Batasan Pagu SKPD, dan Rincian Belanja dari SIPD (sipd.kemendagri.go.id) lalu mengekspornya ke Excel/CSV.",
   "minimum_chrome_version": "111",
   "permissions": [
     "storage",
@@ -11,7 +11,7 @@
     "alarms"
   ],
   "host_permissions": [
-    "https://sipd-ri.kemendagri.go.id/*",
+    "https://sipd.kemendagri.go.id/*",
     "https://*.kemendagri.go.id/*"
   ],
   "background": {
@@ -37,7 +37,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://sipd-ri.kemendagri.go.id/*",
+        "https://sipd.kemendagri.go.id/*",
         "https://*.kemendagri.go.id/*"
       ],
       "js": ["src/inject.js"],
@@ -47,7 +47,7 @@
     },
     {
       "matches": [
-        "https://sipd-ri.kemendagri.go.id/*",
+        "https://sipd.kemendagri.go.id/*",
         "https://*.kemendagri.go.id/*"
       ],
       "js": [
@@ -62,7 +62,7 @@
   "web_accessible_resources": [
     {
       "resources": ["src/lib/*.js", "src/*.js"],
-      "matches": ["https://sipd-ri.kemendagri.go.id/*", "https://*.kemendagri.go.id/*"]
+      "matches": ["https://sipd.kemendagri.go.id/*", "https://*.kemendagri.go.id/*"]
     }
   ]
 }
