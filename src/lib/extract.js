@@ -563,8 +563,10 @@
         var rincianNum = U.parseIndoNumber(rincianRaw);
         if (paguNum === null && rincianNum === null) return;
 
-        // Guard tambahan: jika pagu kosong dan nama mengandung SKPD/UNIT, bukan OPD induk
-        if ((paguNum === null || paguNum === 0) && (nad.toUpperCase().indexOf('SKPD') !== -1 || nad.toUpperCase().indexOf('UNIT') !== -1)) return;
+        // Guard tambahan: pastikan bukan baris "SKPD ..." atau "UNIT ..." yang tidak punya pagu
+        if ((paguNum === null || paguNum === 0) && /^(skpd|unit)/i.test(nad)) return;
+
+
 
         var yr = text(pick(r, role.tahun));
         if (yr) yearCount[yr] = (yearCount[yr] || 0) + 1;
