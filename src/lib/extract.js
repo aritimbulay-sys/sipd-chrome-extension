@@ -478,6 +478,26 @@
     return v === null || v === undefined ? '' : v;
   }
 
+  /* Deteksi apakah baris adalah unit SKPD (anak), bukan perangkat daerah induk. */
+  function isUnitSkpdRow(r, role, columns) {
+    // Jika ada kolom yang menunjukkan unit/sub unit dan terisi, anggap sebagai unit SKPD
+    var unitCols = (columns || []).filter(function (c) {
+      return /unit|sub.?unit|sub.?skpd/i.test(String(c));
+    });
+    for (var i = 0; i < unitCols.length; i++) {
+      var v = r[unitCols[i]];
+      if (v !== null && v !== undefined && String(v).trim() !== '') return true;
+    }
+    // Fallback: jika nama perangkat daerah mengandung kata kunci unit
+    var nad = '';
+    if (role && role.namaPD) nad = String(r[role.namaPD] || '').toLowerCase();
+    var unitKeywords = ['sekretariat', 'bidang', 'upt', 'uptd', 'sub bagian', 'subbag', 'seksi', 'unit pelaksana', 'pokja'];
+    for (var k = 0; k < unitKeywords.length; k++) {
+      if (nad.indexOf(unitKeywords[k]) !== -1) return true;
+    }
+    return false;
+  }
+
   E.build3ColumnReport = function (captures) {
     var HEADER = ['NO', 'Perangkat Daerah', 'Batasan Pagu SKPD', 'Rincian Belanja', 'Selisih', 'Progres', 'Keterangan', 'Status Validasi'];
     var rows = [HEADER];
@@ -503,6 +523,9 @@
         var nad = text(nadRaw);
         if (!nad && role.kodePD) nad = text(pick(r, role.kodePD));
         if (!nad) return;
+
+        // Lewati baris yang merupakan unit SKPD (anak), hanya perangkat daerah induk yang dihitung
+        if (isUnitSkpdRow(r, role, columns)) return;
 
         var key = nad.toLowerCase().replace(/\s+/g, ' ');
         if (seen[key]) return;

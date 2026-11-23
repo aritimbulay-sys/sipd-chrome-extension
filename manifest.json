@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "SIPD Anggaran Scraper",
-  "version": "1.0.0",
+  "name": "SIPD Anggaran Scraper v3",
+  "version": "3.0.0",
   "description": "Menarik data Nama Perangkat Daerah, Batasan Pagu SKPD, dan Rincian Belanja dari SIPD (sipd.kemendagri.go.id) lalu mengekspornya ke Excel/CSV.",
   "minimum_chrome_version": "111",
   "permissions": [
